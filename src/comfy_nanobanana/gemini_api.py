@@ -1,5 +1,7 @@
 import os
 import base64
+import time
+import asyncio
 from typing import Optional, List, Union, Dict, Any
 from google import genai
 from google.genai import types
@@ -7,21 +9,48 @@ import torch
 import numpy as np
 from PIL import Image
 from io import BytesIO
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class GeminiAPIClient:
     """Client for interacting with Google Gemini API."""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, max_retries: int = 3, retry_delay: float = 1.0):
         """Initialize Gemini client with API key."""
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
             raise ValueError("Gemini API key not provided and GEMINI_API_KEY env variable not set")
         
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
+        
         try:
             self.client = genai.Client(api_key=self.api_key)
         except Exception as e:
             raise ValueError(f"Failed to initialize Gemini client: {str(e)}")
+    
+    def _retry_on_failure(self, func, *args, **kwargs):
+        """Retry a function call on failure with exponential backoff."""
+        last_error = None
+        for attempt in range(self.max_retries):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_error = e
+                # Check if it's a retryable error
+                error_str = str(e).lower()
+                if any(x in error_str for x in ['rate limit', 'timeout', '429', '503', '500', 'connection']):
+                    if attempt < self.max_retries - 1:
+                        wait_time = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                        print(f"API request failed (attempt {attempt + 1}/{self.max_retries}). Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                        continue
+                # For non-retryable errors or final attempt, raise immediately
+                raise e
+        
+        # If all retries failed, raise the last error
+        if last_error:
+            raise last_error
     
     def tensor_to_pil(self, tensor: torch.Tensor) -> Image.Image:
         """Convert a torch tensor to PIL Image."""
@@ -71,7 +100,7 @@ class GeminiAPIClient:
         model: str = "gemini-2.5-pro",
         images: Optional[List[torch.Tensor]] = None,
         seed: Optional[int] = None,
-        temperature: float = 1.0,
+        top_p: float = 0.95,
         max_output_tokens: int = 8192
     ) -> str:
         """Generate text using Gemini API."""
@@ -95,15 +124,16 @@ class GeminiAPIClient:
         
         # Configure generation
         config = types.GenerateContentConfig(
-            temperature=temperature,
+            top_p=top_p,
             max_output_tokens=max_output_tokens,
         )
         
         if seed is not None:
             config.seed = seed
         
-        # Generate content
-        response = self.client.models.generate_content(
+        # Generate content with retry logic
+        response = self._retry_on_failure(
+            self.client.models.generate_content,
             model=model,
             contents=contents,
             config=config
@@ -111,6 +141,7 @@ class GeminiAPIClient:
         
         # Extract text from response
         return response.text if response.text else ""
+    
     
     def generate_image(
         self,
@@ -143,8 +174,11 @@ class GeminiAPIClient:
                 pil_image = self.tensor_to_pil(img_tensor)
                 message_contents.append(pil_image)
         
-        # Send message to generate image
-        response = chat.send_message(message_contents)
+        # Send message to generate image with retry logic
+        response = self._retry_on_failure(
+            chat.send_message,
+            message_contents
+        )
         
         output_images = []
         text_output = ""
@@ -182,3 +216,65 @@ class GeminiAPIClient:
             output_images = [dummy_tensor]
         
         return output_images, text_output
+    
+    def generate_batch_concurrent(
+        self,
+        prompts_configs: List[Dict[str, Any]],
+        model: str,
+        max_workers: int = 4,
+        progress_callback=None
+    ) -> List[tuple]:
+        """Generate multiple requests concurrently using ThreadPoolExecutor."""
+        
+        results = [None] * len(prompts_configs)
+        
+        with ThreadPoolExecutor(max_workers=min(max_workers, len(prompts_configs))) as executor:
+            # Submit all tasks
+            future_to_index = {}
+            for i, config in enumerate(prompts_configs):
+                if "image" in model.lower():
+                    # Submit image generation task
+                    future = executor.submit(
+                        self.generate_image,
+                        prompt=config.get('prompt'),
+                        model=model,
+                        images=config.get('images'),
+                        seed=config.get('seed'),
+                        system_prompt=config.get('system_prompt')
+                    )
+                else:
+                    # Submit text generation task
+                    future = executor.submit(
+                        self.generate_text,
+                        prompt=config.get('prompt'),
+                        system_prompt=config.get('system_prompt'),
+                        model=model,
+                        images=config.get('images'),
+                        seed=config.get('seed'),
+                        top_p=config.get('top_p', 0.95),
+                        max_output_tokens=config.get('max_output_tokens', 8192)
+                    )
+                future_to_index[future] = i
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_index):
+                index = future_to_index[future]
+                try:
+                    result = future.result()
+                    results[index] = result
+                    print(f"[NanoBanana Gemini] Completed batch {index + 1}/{len(prompts_configs)}")
+                    # Call progress callback if provided
+                    if progress_callback:
+                        progress_callback(index)
+                except Exception as e:
+                    print(f"[NanoBanana Gemini] Error in batch {index + 1}: {str(e)}")
+                    # Return error placeholder
+                    if "image" in model.lower():
+                        results[index] = ([torch.zeros((1, 64, 64, 4))], f"Error: {str(e)}")
+                    else:
+                        results[index] = f"Error: {str(e)}"
+                    # Still call progress callback on error
+                    if progress_callback:
+                        progress_callback(index)
+        
+        return results

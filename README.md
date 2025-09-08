@@ -1,67 +1,121 @@
 # Comfy Nano Banana
 
-Use Nano Banana directly from Google with their API key
+Google Gemini API integration for ComfyUI - Generate images and text using Google's latest AI models.
 
-> [!NOTE]
-> This projected was created with a [cookiecutter](https://github.com/Comfy-Org/cookiecutter-comfy-extension) template. It helps you start writing custom nodes without worrying about the Python setup.
+## Features
 
-## Quickstart
+- 🎨 **Image Generation** - Create images using Gemini's flash-image-preview model
+- 📝 **Text Generation** - Generate text responses with optional image context
+- 🖼️ **Multimodal Support** - Use images as input context for both text and image generation
+- 🔒 **Secure API Key Handling** - Password field with environment variable support
+- ⚡ **Smart Model Detection** - Automatically uses the right generation method based on model
 
-1. Install [ComfyUI](https://docs.comfy.org/get_started).
-1. Install [ComfyUI-Manager](https://github.com/ltdrdata/ComfyUI-Manager)
-1. Look up this extension in ComfyUI-Manager. If you are installing manually, clone this repository under `ComfyUI/custom_nodes`.
-1. Restart ComfyUI.
+## Installation
 
-# Features
+### Via ComfyUI Manager (Recommended)
+1. Install [ComfyUI](https://docs.comfy.org/get_started)
+2. Install [ComfyUI-Manager](https://github.com/ltdrdata/ComfyUI-Manager)
+3. Search for "Nano Banana" in ComfyUI-Manager and install
+4. Restart ComfyUI
 
-- A list of features
+### Manual Installation
+```bash
+cd ComfyUI/custom_nodes
+git clone https://github.com/yourusername/comfy_nanobanana
+cd comfy_nanobanana
+pip install -r requirements.txt
+```
 
-## Develop
+## Setup
 
-To install the dev dependencies and pre-commit (will run the ruff hook), do:
+1. Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
+2. Set your API key:
+   - **Option 1**: Set environment variable `GEMINI_API_KEY`
+   - **Option 2**: Enter directly in the node's API key field
 
+## Usage
+
+The extension adds a **"Nano Banana Gemini"** node under the "Nano Banana" category.
+
+### Node Inputs
+- **prompt** (required): Text prompt for generation
+- **model**: Gemini model to use (default: `gemini-2.5-flash-image-preview`)
+- **seed**: For reproducible outputs (0-2147483647)
+- **system_prompt** (optional): Instructions to guide the model's behavior
+- **images** (optional): Input images for context
+- **api_key** (optional): Override environment variable
+
+### Node Outputs
+- **images**: Generated images or placeholder for text-only models
+- **text**: Text response from the model
+
+### Supported Models
+- `gemini-2.5-flash-image-preview` - Image and text generation
+- `gemini-2.5-pro` - Text generation only
+- `gemini-2.5-flash` - Text generation only
+
+## Examples
+
+### Image Generation
+1. Add "Nano Banana Gemini" node
+2. Enter a prompt like "A cat wearing a wizard hat"
+3. Connect output to Preview Image node
+
+### Image-to-Image
+1. Load an image
+2. Connect to "images" input
+3. Add prompt describing desired changes
+4. Model will use the image as context
+
+## Development
+
+### Project Structure
+```
+comfy_nanobanana/
+├── src/comfy_nanobanana/
+│   ├── __init__.py
+│   ├── nodes.py          # ComfyUI node implementation
+│   └── gemini_api.py     # Gemini API client
+├── requirements.txt
+└── pyproject.toml
+```
+
+### Dev Setup
 ```bash
 cd comfy_nanobanana
 pip install -e .[dev]
 pre-commit install
 ```
 
-The `-e` flag above will result in a "live" install, in the sense that any changes you make to your node extension will automatically be picked up the next time you run ComfyUI.
-
-## Publish to Github
-
-Install Github Desktop or follow these [instructions](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent) for ssh.
-
-1. Create a Github repository that matches the directory name. 
-2. Push the files to Git
+### Running Tests
+```bash
+pytest tests/
 ```
-git add .
-git commit -m "project scaffolding"
-git push
-``` 
 
-## Writing custom nodes
+## Troubleshooting
 
-An example custom node is located in [node.py](src/comfy_nanobanana/nodes.py). To learn more, read the [docs](https://docs.comfy.org/essentials/custom_node_overview).
+### Common Issues
 
+**"No API key provided"**
+- Ensure `GEMINI_API_KEY` is set or enter key in node
 
-## Tests
+**"Seed must be between 0 and 2147483647"**
+- Gemini API requires 32-bit integer seeds
 
-This repo contains unit tests written in Pytest in the `tests/` directory. It is recommended to unit test your custom node.
+**Empty image output with text models**
+- Normal behavior - text-only models return placeholder image
 
-- [build-pipeline.yml](.github/workflows/build-pipeline.yml) will run pytest and linter on any open PRs
-- [validate.yml](.github/workflows/validate.yml) will run [node-diff](https://github.com/Comfy-Org/node-diff) to check for breaking changes
+## Contributing
 
-## Publishing to Registry
+Pull requests welcome! Please:
+1. Follow existing code style
+2. Add tests for new features
+3. Update documentation
 
-If you wish to share this custom node with others in the community, you can publish it to the registry. We've already auto-populated some fields in `pyproject.toml` under `tool.comfy`, but please double-check that they are correct.
+## License
 
-You need to make an account on https://registry.comfy.org and create an API key token.
+MIT License - see [LICENSE](LICENSE) file
 
-- [ ] Go to the [registry](https://registry.comfy.org). Login and create a publisher id (everything after the `@` sign on your registry profile). 
-- [ ] Add the publisher id into the pyproject.toml file.
-- [ ] Create an api key on the Registry for publishing from Github. [Instructions](https://docs.comfy.org/registry/publishing#create-an-api-key-for-publishing).
-- [ ] Add it to your Github Repository Secrets as `REGISTRY_ACCESS_TOKEN`.
+## Credits
 
-A Github action will run on every git push. You can also run the Github action manually. Full instructions [here](https://docs.comfy.org/registry/publishing). Join our [discord](https://discord.com/invite/comfyorg) if you have any questions!
-
+Created with [ComfyUI Extension Template](https://github.com/Comfy-Org/cookiecutter-comfy-extension)
