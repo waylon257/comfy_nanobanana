@@ -83,20 +83,6 @@ class NanoBananaGeminiImageNode:
     CATEGORY = "Nano Banana"
     DESCRIPTION = "Generate images and text using Google Gemini API"
     
-    @classmethod
-    def VALIDATE_INPUTS(cls, prompt, model, batch_size, seed, system_prompt="", images=None, api_key="", top_p=0.95, max_tokens=2048):
-        """Validate inputs before execution."""
-        if not api_key and not os.environ.get("GEMINI_API_KEY"):
-            return "No API key provided. Set GEMINI_API_KEY environment variable or provide API key in the node."
-        
-        if not prompt.strip():
-            return "Prompt cannot be empty"
-        
-        if seed < 0 or seed > 2147483647:
-            return f"Seed must be between 0 and 2147483647 (32-bit integer range), got {seed}"
-        
-        return True
-    
     def generate(
         self,
         prompt: str,
@@ -110,8 +96,22 @@ class NanoBananaGeminiImageNode:
         max_tokens: int = 2048
     ) -> Tuple[torch.Tensor, str]:
         
+        # Validate inputs
+        if not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+        
+        if seed < 0 or seed > 2147483647:
+            raise ValueError(f"Seed must be between 0 and 2147483647 (32-bit integer range), got {seed}")
+        
         # Get API key
         api_key = api_key if api_key else os.environ.get("GEMINI_API_KEY")
+        
+        if not api_key:
+            raise ValueError("No API key provided. Set GEMINI_API_KEY environment variable or provide API key in the node.")
+        
+        # Basic validation of API key format (Gemini keys typically start with "AI")
+        if api_key and len(api_key) < 10:
+            raise ValueError("API key appears to be invalid (too short). Please check your API key.")
         
         try:
             client = GeminiAPIClient(api_key=api_key)
@@ -248,10 +248,38 @@ class NanoBananaGeminiImageNode:
             
         except Exception as e:
             error_msg = str(e)
+            
+            # Log the full error details
             print(f"[NanoBanana Gemini] Error: {error_msg}", file=sys.stderr)
-            print(f"[NanoBanana Gemini] Traceback:\n{traceback.format_exc()}", file=sys.stderr)
-            # Raise exception to show error in ComfyUI with red node border
-            raise RuntimeError(f"Gemini API Error: {error_msg}")
+            
+            # Check for specific error types and provide helpful messages
+            if "API_KEY_INVALID" in error_msg or "API key not valid" in error_msg:
+                raise RuntimeError("Invalid API key. Please check your Gemini API key in Google AI Studio.")
+            elif "UNAUTHENTICATED" in error_msg:
+                raise RuntimeError("Authentication failed. Please verify your API key has the correct permissions.")
+            elif "RESOURCE_EXHAUSTED" in error_msg or "quota" in error_msg.lower():
+                raise RuntimeError("API quota exceeded. Please check your usage limits in Google AI Studio.")
+            elif "INVALID_ARGUMENT" in error_msg:
+                if "model" in error_msg.lower():
+                    raise RuntimeError(f"Invalid model specified. Please use one of the supported models.")
+                elif "seed" in error_msg.lower():
+                    raise RuntimeError(f"Invalid seed value. Must be between 0 and 2147483647.")
+                else:
+                    raise RuntimeError(f"Invalid argument: {error_msg}")
+            elif "PERMISSION_DENIED" in error_msg:
+                raise RuntimeError("Permission denied. Your API key may not have access to this model or feature.")
+            elif "NOT_FOUND" in error_msg:
+                raise RuntimeError("Resource not found. The model or endpoint may not be available.")
+            elif "rate limit" in error_msg.lower() or "429" in str(e):
+                raise RuntimeError("Rate limit exceeded. Please wait a moment and try again.")
+            elif "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+                raise RuntimeError("Request timed out. Try reducing batch size or prompt complexity.")
+            elif "connection" in error_msg.lower():
+                raise RuntimeError("Connection error. Please check your internet connection.")
+            else:
+                # For unknown errors, show the full error with traceback
+                print(f"[NanoBanana Gemini] Full traceback:\n{traceback.format_exc()}", file=sys.stderr)
+                raise RuntimeError(f"Gemini API Error: {error_msg}")
 
 
 class BatchImages:

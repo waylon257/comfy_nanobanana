@@ -1,8 +1,7 @@
 import os
-import base64
 import time
 import asyncio
-from typing import Optional, List, Union, Dict, Any, Callable
+from typing import Optional, List, Union, Dict, Any, Callable, Tuple
 from google import genai
 from google.genai import types
 import torch
@@ -10,11 +9,18 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 
+# Constants
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_RETRY_DELAY = 1.0
+RETRYABLE_ERRORS = ['rate limit', 'timeout', '429', '503', '500', 'connection']
+CRITICAL_ERRORS = ["API_KEY_INVALID", "API key not valid", "UNAUTHENTICATED"]
+QUOTA_ERRORS = ["RESOURCE_EXHAUSTED", "quota"]
+
 
 class GeminiAPIClient:
     """Client for interacting with Google Gemini API."""
     
-    def __init__(self, api_key: Optional[str] = None, max_retries: int = 3, retry_delay: float = 1.0):
+    def __init__(self, api_key: Optional[str] = None, max_retries: int = DEFAULT_MAX_RETRIES, retry_delay: float = DEFAULT_RETRY_DELAY):
         """Initialize Gemini client with API key."""
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
@@ -38,7 +44,7 @@ class GeminiAPIClient:
                 last_error = e
                 # Check if it's a retryable error
                 error_str = str(e).lower()
-                if any(x in error_str for x in ['rate limit', 'timeout', '429', '503', '500', 'connection']):
+                if any(x in error_str for x in RETRYABLE_ERRORS):
                     if attempt < self.max_retries - 1:
                         wait_time = self.retry_delay * (2 ** attempt)  # Exponential backoff
                         print(f"API request failed (attempt {attempt + 1}/{self.max_retries}). Retrying in {wait_time}s...")
@@ -371,15 +377,30 @@ class GeminiAPIClient:
                 return result
                 
             except Exception as e:
-                print(f"[NanoBanana Gemini] Error in batch {index + 1}: {str(e)}")
+                error_str = str(e)
+                print(f"[NanoBanana Gemini] Error in batch {index + 1}: {error_str}")
                 if progress_callback:
                     progress_callback(index)
                 
+                # Check for critical errors that should stop all processing
+                if any(x in error_str for x in CRITICAL_ERRORS):
+                    # API key error - stop all batch processing
+                    raise ValueError(f"Invalid API key. Please check your Gemini API key.")
+                elif any(x in error_str.lower() for x in QUOTA_ERRORS):
+                    # Quota exceeded - stop all batch processing
+                    raise ValueError(f"API quota exceeded. Please check your Gemini API usage limits.")
+                elif "INVALID_ARGUMENT" in error_str and "model" in error_str.lower():
+                    # Invalid model - stop all batch processing
+                    raise ValueError(f"Invalid model specified. Please check the model name.")
+                
+                # For other errors, continue with error placeholder but log them clearly
+                print(f"[NanoBanana Gemini] Non-critical error, continuing with placeholder for batch {index + 1}")
+                
                 # Return error placeholder
                 if "image" in model.lower():
-                    return ([torch.zeros((1, 64, 64, 4))], f"Error: {str(e)}")
+                    return ([torch.zeros((1, 64, 64, 4))], f"Error in batch {index + 1}: {error_str}")
                 else:
-                    return f"Error: {str(e)}"
+                    return f"Error in batch {index + 1}: {error_str}"
         
         # Create tasks for all configs
         tasks = [
