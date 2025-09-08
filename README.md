@@ -23,7 +23,7 @@ Google Gemini API integration for ComfyUI - Generate images and text using Googl
 ### Manual Installation
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/yourusername/comfy_nanobanana
+git clone https://github.com/darkamenosa/comfy_nanobanana.git
 cd comfy_nanobanana
 pip install -r requirements.txt
 ```
