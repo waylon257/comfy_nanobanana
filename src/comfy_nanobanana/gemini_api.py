@@ -2,14 +2,13 @@ import os
 import base64
 import time
 import asyncio
-from typing import Optional, List, Union, Dict, Any
+from typing import Optional, List, Union, Dict, Any, Callable
 from google import genai
 from google.genai import types
 import torch
 import numpy as np
 from PIL import Image
 from io import BytesIO
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class GeminiAPIClient:
@@ -217,25 +216,137 @@ class GeminiAPIClient:
         
         return output_images, text_output
     
-    def generate_batch_concurrent(
+    async def generate_text_async(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        model: str = "gemini-2.5-pro",
+        images: Optional[List[torch.Tensor]] = None,
+        seed: Optional[int] = None,
+        top_p: float = 0.95,
+        max_output_tokens: int = 8192
+    ) -> str:
+        """Generate text using Gemini API with async client."""
+        contents = []
+        
+        # Combine system prompt and main prompt
+        full_prompt = ""
+        if system_prompt:
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+        else:
+            full_prompt = prompt
+        
+        # Add text prompt
+        contents.append(full_prompt)
+        
+        # Add images if provided
+        if images:
+            for img_tensor in images:
+                pil_image = self.tensor_to_pil(img_tensor)
+                contents.append(pil_image)
+        
+        # Configure generation
+        config = types.GenerateContentConfig(
+            top_p=top_p,
+            max_output_tokens=max_output_tokens,
+        )
+        
+        if seed is not None:
+            config.seed = seed
+        
+        # Generate content with async client
+        response = await self.client.aio.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config
+        )
+        
+        # Extract text from response
+        return response.text if response.text else ""
+    
+    async def generate_image_async(
+        self,
+        prompt: str,
+        model: str = "gemini-2.5-flash-image-preview",
+        images: Optional[List[torch.Tensor]] = None,
+        seed: Optional[int] = None,
+        system_prompt: Optional[str] = None
+    ) -> tuple[List[torch.Tensor], str]:
+        """Generate images using async Gemini API."""
+        
+        # For image generation, we still need to use chat interface
+        # Note: This might not be fully async, but we wrap it for consistency
+        chat = self.client.aio.chats.create(model=model)
+        
+        # Prepare message contents
+        message_contents = []
+        
+        # Combine system prompt and main prompt
+        full_prompt = ""
+        if system_prompt:
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+        else:
+            full_prompt = prompt
+        
+        message_contents.append(full_prompt)
+        
+        # Add input images if provided
+        if images:
+            for img_tensor in images:
+                pil_image = self.tensor_to_pil(img_tensor)
+                message_contents.append(pil_image)
+        
+        # Send message to generate image
+        response = await chat.send_message(message_contents)
+        
+        output_images = []
+        text_output = ""
+        
+        # Process response
+        if response.candidates and len(response.candidates) > 0:
+            candidate = response.candidates[0]
+            if candidate.content and candidate.content.parts:
+                for part in candidate.content.parts:
+                    # Handle text parts
+                    if part.text is not None:
+                        text_output += part.text
+                    # Handle image parts
+                    elif part.inline_data is not None:
+                        try:
+                            # Get image data
+                            if hasattr(part.inline_data, 'data'):
+                                image_bytes = part.inline_data.data
+                            else:
+                                image_bytes = part.inline_data.get('data', b'')
+                            
+                            if image_bytes:
+                                # Convert bytes to tensor
+                                tensor = self.bytes_to_tensor(image_bytes)
+                                output_images.append(tensor)
+                        except Exception as e:
+                            print(f"Error processing image from response: {e}")
+        
+        # Return empty tensor if no images generated
+        if not output_images:
+            dummy_tensor = torch.zeros((1, 64, 64, 4))
+            output_images = [dummy_tensor]
+        
+        return output_images, text_output
+    
+    async def generate_batch_concurrent_async(
         self,
         prompts_configs: List[Dict[str, Any]],
         model: str,
-        max_workers: int = 4,
-        progress_callback=None
-    ) -> List[tuple]:
-        """Generate multiple requests concurrently using ThreadPoolExecutor."""
+        progress_callback: Optional[Callable[[int], None]] = None
+    ) -> List[Union[tuple, str]]:
+        """Generate multiple requests concurrently using async client."""
         
-        results = [None] * len(prompts_configs)
-        
-        with ThreadPoolExecutor(max_workers=min(max_workers, len(prompts_configs))) as executor:
-            # Submit all tasks
-            future_to_index = {}
-            for i, config in enumerate(prompts_configs):
+        async def process_single_request(index: int, config: Dict[str, Any]):
+            """Process a single request and handle errors."""
+            try:
                 if "image" in model.lower():
-                    # Submit image generation task
-                    future = executor.submit(
-                        self.generate_image,
+                    # Generate image
+                    result = await self.generate_image_async(
                         prompt=config.get('prompt'),
                         model=model,
                         images=config.get('images'),
@@ -243,9 +354,8 @@ class GeminiAPIClient:
                         system_prompt=config.get('system_prompt')
                     )
                 else:
-                    # Submit text generation task
-                    future = executor.submit(
-                        self.generate_text,
+                    # Generate text
+                    result = await self.generate_text_async(
                         prompt=config.get('prompt'),
                         system_prompt=config.get('system_prompt'),
                         model=model,
@@ -254,27 +364,62 @@ class GeminiAPIClient:
                         top_p=config.get('top_p', 0.95),
                         max_output_tokens=config.get('max_output_tokens', 8192)
                     )
-                future_to_index[future] = i
-            
-            # Collect results as they complete
-            for future in as_completed(future_to_index):
-                index = future_to_index[future]
-                try:
-                    result = future.result()
-                    results[index] = result
-                    print(f"[NanoBanana Gemini] Completed batch {index + 1}/{len(prompts_configs)}")
-                    # Call progress callback if provided
-                    if progress_callback:
-                        progress_callback(index)
-                except Exception as e:
-                    print(f"[NanoBanana Gemini] Error in batch {index + 1}: {str(e)}")
-                    # Return error placeholder
-                    if "image" in model.lower():
-                        results[index] = ([torch.zeros((1, 64, 64, 4))], f"Error: {str(e)}")
-                    else:
-                        results[index] = f"Error: {str(e)}"
-                    # Still call progress callback on error
-                    if progress_callback:
-                        progress_callback(index)
+                
+                print(f"[NanoBanana Gemini] Completed batch {index + 1}/{len(prompts_configs)}")
+                if progress_callback:
+                    progress_callback(index)
+                return result
+                
+            except Exception as e:
+                print(f"[NanoBanana Gemini] Error in batch {index + 1}: {str(e)}")
+                if progress_callback:
+                    progress_callback(index)
+                
+                # Return error placeholder
+                if "image" in model.lower():
+                    return ([torch.zeros((1, 64, 64, 4))], f"Error: {str(e)}")
+                else:
+                    return f"Error: {str(e)}"
+        
+        # Create tasks for all configs
+        tasks = [
+            process_single_request(i, config) 
+            for i, config in enumerate(prompts_configs)
+        ]
+        
+        # Run all tasks concurrently using asyncio.gather
+        results = await asyncio.gather(*tasks, return_exceptions=False)
         
         return results
+    
+    def generate_batch_concurrent(
+        self,
+        prompts_configs: List[Dict[str, Any]],
+        model: str,
+        progress_callback: Optional[Callable[[int], None]] = None
+    ) -> List[Union[tuple, str]]:
+        """Wrapper to run async batch generation in sync context."""
+        
+        import threading
+        import concurrent.futures
+        
+        def run_async_in_thread():
+            """Run async code in a separate thread with its own event loop."""
+            # Create a new event loop for this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(
+                    self.generate_batch_concurrent_async(
+                        prompts_configs=prompts_configs,
+                        model=model,
+                        progress_callback=progress_callback
+                    )
+                )
+            finally:
+                loop.close()
+        
+        # Run the async code in a separate thread to avoid event loop conflicts
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_async_in_thread)
+            return future.result()

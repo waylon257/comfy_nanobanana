@@ -157,7 +157,6 @@ class NanoBananaGeminiImageNode:
                 results = client.generate_batch_concurrent(
                     prompts_configs=batch_configs,
                     model=model,
-                    max_workers=min(batch_size, 4),  # Limit concurrent workers
                     progress_callback=progress_callback
                 )
                 
@@ -169,7 +168,12 @@ class NanoBananaGeminiImageNode:
                     current_seed = seed + i
                     if "image" in model.lower():
                         output_images, text_response = result
-                        all_output_images.extend(output_images)
+                        # For batch, we expect one image per request to maintain batch_size
+                        # If multiple images returned, take the first one
+                        if output_images and len(output_images) > 0:
+                            all_output_images.append(output_images[0])
+                        else:
+                            all_output_images.append(torch.zeros((1, 64, 64, 4)))
                         all_text_responses.append(f"[Batch {i+1}/{batch_size}, Seed: {current_seed}]\n{text_response}")
                     else:
                         text_response = result
@@ -217,7 +221,27 @@ class NanoBananaGeminiImageNode:
             
             # Combine all results
             if all_output_images:
-                result_tensor = torch.cat(all_output_images, dim=0)
+                # Ensure all images have the same dimensions before concatenation
+                # Use the first image's dimensions as reference
+                ref_h = all_output_images[0].shape[1]
+                ref_w = all_output_images[0].shape[2]
+                
+                resized_outputs: List[torch.Tensor] = []
+                for img in all_output_images:
+                    if img.shape[1] != ref_h or img.shape[2] != ref_w:
+                        # Resize to match reference dimensions
+                        upscaled = comfy.utils.common_upscale(
+                            img.movedim(-1, 1),  # BHWC -> BCHW
+                            ref_w,
+                            ref_h,
+                            "bilinear",
+                            "center",
+                        ).movedim(1, -1)  # BCHW -> BHWC
+                        resized_outputs.append(upscaled)
+                    else:
+                        resized_outputs.append(img)
+                
+                result_tensor = torch.cat(resized_outputs, dim=0)
             else:
                 result_tensor = torch.zeros((batch_size, 64, 64, 4))
             
