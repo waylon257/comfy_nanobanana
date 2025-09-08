@@ -12,6 +12,12 @@ Google Gemini API integration for ComfyUI - Generate images and text using Googl
 - 🔒 **Secure API Key Handling** - Password field with environment variable support
 - ⚡ **Smart Model Detection** - Automatically uses the right generation method based on model
 
+## Demo
+
+Watch the Comfy Nano Banana custom node in action:
+
+[![Comfy Nano Banana Demo](https://img.youtube.com/vi/yLs5OdTeXZ8/maxresdefault.jpg)](https://youtu.be/yLs5OdTeXZ8)
+
 ## Installation
 
 ### Via ComfyUI Manager (Recommended)
