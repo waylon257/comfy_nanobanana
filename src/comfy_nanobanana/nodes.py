@@ -84,12 +84,8 @@ class NanoBananaGeminiImageNode:
     DESCRIPTION = "Generate images and text using Google Gemini API"
     
     @classmethod
-    def VALIDATE_INPUTS(cls, **kwargs):
+    def VALIDATE_INPUTS(cls, prompt, model, batch_size, seed, system_prompt="", images=None, api_key="", top_p=0.95, max_tokens=2048):
         """Validate inputs before execution."""
-        api_key = kwargs.get('api_key', '')
-        prompt = kwargs.get('prompt', '')
-        seed = kwargs.get('seed', 42)
-        
         if not api_key and not os.environ.get("GEMINI_API_KEY"):
             return "No API key provided. Set GEMINI_API_KEY environment variable or provide API key in the node."
         
