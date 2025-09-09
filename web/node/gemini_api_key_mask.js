@@ -90,8 +90,9 @@ app.registerExtension({
                     return actualApiKey;
                 };
                 
-                // Override serialization
+                // Override serialization - keep API key for API format
                 apiKeyWidget.serializeValue = function() {
+                    // Return actual API key for API format (used programmatically)
                     return actualApiKey;
                 };
                 
@@ -114,23 +115,21 @@ app.registerExtension({
             });
         };
         
-        // Override onSerialize to save actual values
+        // Override onSerialize to EXCLUDE API key from exports
         const origOnSerialize = nodeType.prototype.onSerialize;
         nodeType.prototype.onSerialize = function(o) {
             if (origOnSerialize) {
                 origOnSerialize.call(this, o);
             }
             
-            // Find api_key widget and ensure we save the actual value
+            // Find api_key widget and REMOVE it from export
             const apiKeyWidget = this.widgets?.find(w => w.name === API_KEY_WIDGET_NAME);
-            if (apiKeyWidget && apiKeyWidget.getActualValue) {
-                const actualValue = apiKeyWidget.getActualValue();
-                if (actualValue) {
-                    // Find widget index
-                    const widgetIdx = this.widgets.indexOf(apiKeyWidget);
-                    if (widgetIdx >= 0 && o.widgets_values) {
-                        o.widgets_values[widgetIdx] = actualValue;
-                    }
+            if (apiKeyWidget) {
+                const widgetIdx = this.widgets.indexOf(apiKeyWidget);
+                if (widgetIdx >= 0 && o.widgets_values) {
+                    // Set to empty string instead of actual value for security
+                    o.widgets_values[widgetIdx] = "";
+                    console.log("[NanoBanana] API key excluded from workflow export for security");
                 }
             }
         };
@@ -142,20 +141,24 @@ app.registerExtension({
                 origOnConfigure.call(this, o);
             }
             
-            // After configuration, mask the API key if present
+            // After configuration, handle API key if present
             requestAnimationFrame(() => {
                 const apiKeyWidget = this.widgets?.find(w => w.name === API_KEY_WIDGET_NAME);
                 if (apiKeyWidget && o.widgets_values) {
                     const widgetIdx = this.widgets.indexOf(apiKeyWidget);
-                    if (widgetIdx >= 0 && o.widgets_values[widgetIdx]) {
+                    if (widgetIdx >= 0) {
                         const value = o.widgets_values[widgetIdx];
-                        if (value && !value.includes("*")) {
-                            // This is a real API key, store it and mask display
+                        if (value && value !== "" && !value.includes("*")) {
+                            // This is a real API key from an old workflow, store it and mask display
                             if (apiKeyWidget.getActualValue) {
                                 apiKeyWidget.callback(value);
                             } else {
                                 apiKeyWidget.value = value;
                             }
+                            console.log("[NanoBanana] Loaded API key from workflow (consider re-saving to exclude it)");
+                        } else if (!value || value === "") {
+                            // No API key in workflow (expected for new secure exports)
+                            console.log("[NanoBanana] No API key in workflow - please enter it manually or use GEMINI_API_KEY env variable");
                         }
                     }
                 }

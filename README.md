@@ -9,7 +9,7 @@ Google Gemini API integration for ComfyUI - Generate images and text using Googl
 - 🖼️ **Multimodal Support** - Use images as input context for both text and image generation
 - 🚀 **Concurrent Batch Processing** - Generate 1-4 images concurrently with progress tracking
 - 🔀 **Dynamic Batch Images** - Combine multiple images into a single batch with automatic resizing
-- 🔒 **Secure API Key Handling** - Password field with environment variable support
+- 🔒 **Secure API Key Handling** - Password field masking with smart export behavior
 - ⚡ **Smart Model Detection** - Automatically uses the right generation method based on model
 
 ## Demo
@@ -40,6 +40,29 @@ pip install -r requirements.txt
 2. Set your API key:
    - **Option 1**: Set environment variable `GEMINI_API_KEY`
    - **Option 2**: Enter directly in the node's API key field
+
+## Security & API Key Handling
+
+### 🔐 Smart Export Behavior
+This node implements intelligent API key handling for different export scenarios:
+
+#### **Regular Workflow Export** (Save Workflow)
+- **API keys are automatically removed** when saving workflows
+- Safe for sharing workflows publicly without exposing sensitive credentials
+- Recipients must enter their own API key or use environment variables
+- Prevents accidental API key exposure when sharing on forums, GitHub, etc.
+
+#### **API Format Export** (Save as API - Developer Mode)
+- **API keys are preserved** in the exported JSON
+- Designed for developers deploying workflows programmatically
+- Convenient for production deployments and automation
+- ⚠️ **Developer Warning**: Only share API format exports with trusted parties or systems
+
+### Best Practices
+- Use environment variable `GEMINI_API_KEY` for production deployments
+- Always review exported files before sharing publicly
+- For public workflow sharing, use regular "Save Workflow" option
+- For private/automated use, API format export maintains convenience
 
 ## Usage
 
@@ -122,7 +145,8 @@ comfy_nanobanana/
 ├── web/
 │   ├── index.js          # Extension entry point
 │   └── node/
-│       └── batch_images_dynamic.js  # Dynamic input handling for Batch Images
+│       ├── batch_images_dynamic.js  # Dynamic input handling for Batch Images
+│       └── gemini_api_key_mask.js   # API key masking and secure export handling
 ├── requirements.txt
 └── pyproject.toml
 ```
@@ -134,10 +158,15 @@ pip install -e .[dev]
 pre-commit install
 ```
 
-### Running Tests
-```bash
-pytest tests/
-```
+### Developer Notes
+
+#### API Key Security Implementation
+The node implements a dual-mode export system:
+- **UI Masking**: API keys are visually masked in the interface (showing only first 4 and last 2 characters)
+- **Workflow Export**: Automatically strips API keys for safe sharing
+- **API Export**: Preserves API keys for programmatic use (requires Developer Mode)
+
+This design balances security with developer convenience, ensuring users don't accidentally expose credentials while maintaining ease of deployment for production systems.
 
 ## Troubleshooting
 
